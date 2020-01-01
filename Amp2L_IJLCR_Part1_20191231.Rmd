@@ -359,7 +359,7 @@ Now, we correct spelling mistakes and re-inspect the data.
 
 ```{r l2amp_12, echo=T, eval = T, message=FALSE, warning=FALSE}
 # correct misspellings
-ampicle$Adjective <- ifelse(ampicle$Adjective == "chineese", "chinese", ampicle$Adjective)
+ampicle$Adjective <- ifelse(ampicle$Adjective == "chineese", "chinese")
 # create vector with false adjectives
 rmvadj <- c("uhr", "cheif")
 ampicle$remove <- ifelse(ampicle$Adjective %in% rmvadj, "remove", ampicle$Adjective)
@@ -545,5 +545,4 @@ write.table(ampicle, "datatables/ampicle_clean04.txt", sep = "\t", row.names = F
 # inspect data
 head(ampicle); str(ampicle); nrow(ampicle)
 ```
-
-We have reached the end of part 1 of the analysis.
+We have reached the end of the analysis.
