@@ -1,0 +1,548 @@
+---
+title: "A corpus-based analysis of adjective amplification among native speakers and learners of English"
+author: "Anonymous"
+date: "`r format(Sys.time(), '%Y-%m-%d')`"
+output:
+  bookdown::html_document2: default
+bibliography: bibliography.bib
+link-citations: yes
+---
+
+This document shows an analysis that was performed with the aim of finding differences in adjective amplification between learners of English and native speakers based on the ICLE. 
+
+In a first step, the session is prepared by clearing the workspace, setting options, activating packages and functions, as well as loading relevant functions.
+
+```{r l2amp_01, echo=T, eval = T, message=FALSE, warning=FALSE}
+# clean current workspace
+rm(list=ls(all=T))  
+# load libraries
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(stringr)
+# set options
+options(stringsAsFactors = F)
+options(scipen = 999)
+options(max.print=10000)
+# define image directory
+imageDirectory<-"images"
+# specify path to corpus
+corpus.icle <- "D:\\Uni\\Korpora\\Original\\ICLE\\DATA" 
+```
+
+Next, the data is loaded and displayed.
+
+```{r l2amp_02, echo=T, eval = T, message=FALSE, warning=FALSE}
+# define files to load
+corpus.files = list.files(path = corpus.icle, pattern = NULL, all.files = T,
+                          full.names = T, recursive = T, ignore.case = T,
+                          include.dirs = T)
+# load files
+icle <- lapply(corpus.files, function(x) {
+  x <- scan(x, what = "char", sep = "", quote = "", quiet = T, skipNul = T)
+  x <- gsub(" {2,}", " ", x)
+  x <- str_trim(x, side = "both")
+  Speaker<- x[1] 
+  Content <- x[2:length(x)]
+  Content <- paste(Content, sep = " ", collapse = " ")
+  Content <- unlist(Content)
+  icle <- cbind(Speaker, Content)
+  return(icle)
+})
+ID <- sapply(icle,function(x) x[1])
+LanguageSpeaker <- gsub("-[0-9]{2,}.*", "", ID)
+LanguageSpeaker <- gsub("<ICLE-", "", LanguageSpeaker)
+Language <- gsub("-.*", "", LanguageSpeaker)
+File <- gsub(".*-", "", ID)
+File <- gsub("\\..*", "", File)
+Speaker <- gsub(".*-", "", LanguageSpeaker)
+Content <- sapply(icle,function(x) x[2])
+CleanContent <- gsub("\"", " ", Content, fixed = T)
+CleanContent <- gsub(" {2,}", " ", CleanContent)
+# combine vectors to data frame
+icle <- as.data.frame(cbind(ID, Language, File, Speaker, Content, CleanContent))
+# check data
+head(icle[,1:4]); nrow(icle); icle[1320:1330,1:4]
+```
+
+Next, the data is processed and saved.
+
+```{r l2amp_03, echo=T, eval = T, message=FALSE, warning=FALSE}
+# remove elements that are shorter than 1000 characters
+icle <- icle[nchar(icle$CleanContent) >= 1000,]
+# save data to disc
+write.table(icle, "datatables/icle_raw01.txt", sep = "\t", row.names = F, col.names = T, quote = T)
+# WARNING: DO NOT ACTIVATE!
+#icle <- read.table("icle_raw01.txt", sep = "\t", header = T)#, skipNul = T, quote = "\"", fill = T)
+```
+
+In a next step, the data are part-of-speech tagged.
+
+```{r l2amp_04, echo=T, eval = T, message=FALSE, warning=FALSE}
+# split data into smaller chunks
+pos01 <- icle$CleanContent[1:500]
+pos02 <- icle$CleanContent[501:1000]
+pos03 <- icle$CleanContent[1001:1500]
+pos04 <- icle$CleanContent[1501:2000]
+pos05 <- icle$CleanContent[2001:2500]
+pos06 <- icle$CleanContent[2501:3000]
+pos07 <- icle$CleanContent[3001:3500]
+pos08 <- icle$CleanContent[3501:nrow(icle)]
+# reload libraries
+source("D:\\R/POStagObject.R") # for pos-tagging objects in R
+#library(plyr)
+library(NLP)
+library(openNLP)
+library(openNLPmodels.en)
+# pos tagging data
+iclepos01 <- POStag(object = pos01)
+iclepos01 <- as.vector(unlist(iclepos01))
+writeLines(iclepos01, con = "datatables/iclepos01.txt", sep = "\n", useBytes = FALSE)
+# chunk 2
+iclepos02 <- POStag(object = pos02)
+iclepos02 <- as.vector(unlist(iclepos02))
+writeLines(iclepos02, con = "datatables/iclepos02.txt", sep = "\n", useBytes = FALSE)
+# chunk 03
+iclepos03 <- POStag(object = pos03)
+iclepos03 <- as.vector(unlist(iclepos03))
+writeLines(iclepos03, con = "datatables/iclepos03.txt", sep = "\n", useBytes = FALSE)
+# chunk 04
+iclepos04 <- POStag(object = pos04)
+iclepos04 <- as.vector(unlist(iclepos04))
+writeLines(iclepos04, con = "datatables/iclepos04.txt", sep = "\n", useBytes = FALSE)
+# chunk 05
+iclepos05 <- POStag(object = pos05)
+iclepos05 <- as.vector(unlist(iclepos05))
+writeLines(iclepos05, con = "datatables/iclepos05.txt", sep = "\n", useBytes = FALSE)
+# chunk 06
+iclepos06 <- POStag(object = pos06)
+iclepos06 <- as.vector(unlist(iclepos06))
+writeLines(iclepos06, con = "datatables/iclepos06.txt", sep = "\n", useBytes = FALSE)
+# chunk 07
+iclepos07 <- POStag(object = pos07)
+iclepos07 <- as.vector(unlist(iclepos07))
+writeLines(iclepos07, con = "datatables/iclepos07.txt", sep = "\n", useBytes = FALSE)
+# chunk 08
+iclepos08 <- POStag(object = pos08)
+iclepos08 <- as.vector(unlist(iclepos08))
+writeLines(iclepos08, con = "datatables/iclepos08.txt", sep = "\n", useBytes = FALSE)
+# list pos tagged elements
+postag.files = c("datatables/iclepos01.txt", "datatables/iclepos02.txt",
+                 "datatables/iclepos03.txt",  "datatables/iclepos04.txt", 
+                 "datatables/iclepos05.txt", "datatables/iclepos06.txt",
+                 "datatables/iclepos07.txt", "datatables/iclepos08.txt")
+# load pos tagged elements
+iclepos <- sapply(postag.files, function(x) {
+  x <- scan(x, what = "char", sep = "\n", quote = "", quiet = T, skipNul = T)
+  x <- gsub(" {2,}", " ", x)
+  x <- str_trim(x, side = "both")
+  x <- str_replace_all(x, fixed("\n"), " ")
+})
+# unlist pos tagged elements
+icle$iclepos <- unlist(iclepos)
+```
+
+In a next step, we create the concordances which target adjectives (JJ) in the ICLE data.
+
+```{r l2amp_05, echo=T, eval = T, message=FALSE, warning=FALSE}
+# extract number of adjs per line
+pstggd <- icle$iclepos
+lpstggd <- strsplit(pstggd, " ")
+nlpstggd <- as.vector(unlist(sapply(lpstggd, function(x){
+  x <- x[grep("[A-Z]{0,1}[a-z]{1,}\\/JJ[A-Z]{0,1}", x)]
+  x <- length(x) } )))
+rp <- nlpstggd
+rp <- ifelse(rp == 0, 1, rp)
+# load function for concordancing
+source("D:\\R/ConcR_2.3_loadedfiles.R")
+# set parameters for concordancing
+pattern <- "[A-Z]{0,1}[a-z]{1,}\\/JJ[A-Z]{0,1}"
+context <- 50
+# extract all adjectives (concordance)
+concjjicle <- ConcR(icle$iclepos, pattern, context, all.pre = FALSE)
+# repeat rows in data frame as often as there are adjectives in it (if 0 adj, repeat once)
+corpusicleadjdf <- icle[rep(seq(nrow(icle)), rp),]
+# combine data sets
+corpusicleadj <- data.frame(1:nrow(corpusicleadjdf), corpusicleadjdf, concjjicle)
+# remove rows without Tokens
+ampicle <- corpusicleadj[is.na(corpusicleadj$Token) == F,]
+# add clean column names
+colnames(ampicle) <- c("ID", "File", "Language", "Subfile", "Speaker", "Content", 
+                       "ContentClean", "PosTaggedContent", 
+                       "OriginalString", "PreContext", "Adjective", "PostContext")
+# clean adjectives
+ampicle$Adjective <- gsub(".*/JJR", "remove", ampicle$Adjective)
+ampicle$Adjective <- gsub(".*/JJS", "remove", ampicle$Adjective)
+amicle <- ampicle[!ampicle$Adjective == "remove",]
+ampicle$Adjective <- str_replace_all(ampicle$Adjective, fixed("/JJ"), "")
+# add Vraiant column
+ampicle$Variant <- gsub(".* ", "", str_trim(ampicle$PreContext, side = "both")) 
+# inspect data
+nrow(ampicle); head(ampicle)
+```
+
+Now, we check which adjectives were amplified.
+
+```{r l2amp_06, echo=T, eval = T, message=FALSE, warning=FALSE}
+# define amplifiers
+amplifiers <- c("absolutely", #"actually", "aggressively", 
+                #"amazingly", "appallingly", 
+                "awful", "awfully", 
+                #"badly", 
+                "bloody", "certainly", "clearly",
+                #"complete", 
+                "dead", "completely", 
+                #"considerably", 
+                "crazy", "decidedly", "definitely",  "distinctly", 
+                "dreadfully", "enormously", "entirely", #"especially", 
+                #"exactly", 
+                "exceedingly", "exceptionally", 
+                "excruciatingly", "extraordinarily", "extremely",
+                "fiercely", "firmly", "frightfully", "fucking", 
+                "fully", "genuinely", "greatly",
+                "grossly", "heavily", "highly", "hopelessly", 
+                #"horrendously", "hugely",
+                #"immediately", "immensely", 
+                "incredibly", 
+                #"infinitely", "intensely", "irrevocably",
+                "mad", "mega", "mighty", #"most", "much", 
+                "obviously", "openly", "overwhelmingly", "particularly", 
+                "perfectly", "plenty", "positively", "precisely", 
+                "pretty", "profoundly", "purely", 
+                #"quite", 
+                "real", "really", "remarkably", "seriously", 
+                #"shocking",   
+                "significant", "significantly", "so", 
+                #"specially", 
+                "specifically", "strikingly",
+                "strongly", "substantially", "super", "surely", 
+                "terribly", "terrifically", 
+                #"too",
+                "total", "totally", "traditionally", #"true", 
+                "truly", "ultra", "utterly", "very",
+                "viciously", 
+                #"well", 
+                "wholly", "wicked", "wildly")
+# clean ice icle data
+ampicle$Function <- str_trim(ampicle$PostContext, side = "both")
+ampicle$Function <- tolower(ampicle$Function)
+ampicle$Function <- gsub(" {2,}", " ", ampicle$Function)
+ampicle$Function <- sub(" ", "", ampicle$Function)
+ampicle$Function <- gsub(" .*", "", ampicle$Function)
+ampicle$Function <- gsub(".*/nn.*", "Attributive", ampicle$Function)
+ampicle$Function <- ifelse(ampicle$Function == "Attributive", ampicle$Function, "Predicative")
+# language
+ampicle$Language <- ifelse(ampicle$Language == "GE", "German", ampicle$Language)
+ampicle$Language <- ifelse(ampicle$Language == "BG", "Bulgarian", ampicle$Language)
+ampicle$Language <- ifelse(ampicle$Language == "CZ", "Czech", ampicle$Language)
+ampicle$Language <- ifelse(ampicle$Language == "DB", "Flemish", ampicle$Language)
+ampicle$Language <- ifelse(ampicle$Language == "DN", "Dutch", ampicle$Language)
+ampicle$Language <- ifelse(ampicle$Language == "FIN", "Finnish", ampicle$Language)
+ampicle$Language <- ifelse(ampicle$Language == "FR", "French", ampicle$Language)
+ampicle$Language <- ifelse(ampicle$Language == "IT", "Italian", ampicle$Language)
+ampicle$Language <- ifelse(ampicle$Language == "PO", "Polish", ampicle$Language)
+ampicle$Language <- ifelse(ampicle$Language == "SP", "Spanish", ampicle$Language)
+ampicle$Language <- ifelse(ampicle$Language == "SW", "Swedish", ampicle$Language)
+ampicle$Language <- ifelse(ampicle$Language == "FSW", "Swedish", ampicle$Language)
+ampicle$Language <- ifelse(ampicle$Language == "RU", "Russian", ampicle$Language)
+ampicle$Language <- ifelse(ampicle$Language == "MOSC", "Russian", ampicle$Language)
+languages <- c("German", "Bulgarian", "Czech", "Flemish", "Dutch", "Finnish", 
+               "French", "Italian", "Polish", "Spanish", "Swedish", "Russian")
+ampicle$Language <- ifelse(ampicle$Language %in% languages, ampicle$Language, "remove")
+ampicle <- ampicle[ampicle$Language != "remove",]
+# shorten post Context
+ampicle$PostContext <- substr(ampicle$PostContext, 1, ifelse((nchar(ampicle$PostContext)+25) <25, maampicle(nchar(ampicle$PostContext)), 25))
+# pre Context
+ampicle$PreContext <- str_trim(ampicle$PreContext, side = "both")
+ampicle$PreContextLong <- ampicle$PreContext
+ampicle$PreContextLong <- substr(ampicle$PreContextLong, ifelse(nchar(ampicle$PreContextLong)-25 <=0, 1, 
+                                                                nchar(ampicle$PreContextLong)-25), nchar(ampicle$PreContextLong))
+ampicle$PreContext <- gsub(".* ", "", ampicle$PreContext)
+# amplifier variant
+ampicle$PreContext <- gsub("\\/.*", "", ampicle$PreContext)
+ampicle$Variant <- ifelse(ampicle$PreContext %in% amplifiers, ampicle$PreContext, "0")
+# amplified y/n
+ampicle$Amplified <- ifelse(ampicle$Variant == "0", 0, 1) 
+# adjective
+ampicle$Adjective <- tolower(ampicle$Adjective)
+# inspect data
+nrow(ampicle); head(ampicle); table(ampicle$Variant)
+```
+
+In a next step, we define rows that need to be removed.
+
+```{r l2amp_07, echo=T, eval = T, message=FALSE, warning=FALSE}
+# define forms that require removal
+sups <- c(".*most.*", ".*more.*") 
+negs <- c(".*not.*", ".*never.*", ".*n't.*")
+downtoners <- c(".*sort/.*", ".*kind/.*", ".* bit/.*", ".*somewhat.*", ".*fairly.*", 
+                ".*rather.*", ".*reasonably.*", ".*slightly.*", ".*comparatively.*", ".*semi.*", 
+                ".*relatively.*", ".*little.*", ".*somehow.*", ".*almost.*", ".*partly.*", 
+                ".*hardly.*", ".* less.*", ".*barely.*", ".* just/.*")
+specialforms <- c(".* too.*", ".*quite.*")
+PostContextdowntoners <- c(".*enough.*")
+nonpropadj <- c("only", "much", "many", "cheaper", "cheaperr", "bests", "larger", "such", "other")
+# check length of dataset
+str(ampicle); head(ampicle); nrow(ampicle)#; table(ampicle$pint); head(ampicle$PreContextLong); head(ampicle$PreContextLong)
+
+# code priming
+prim1 <- c(rep(0, 1), ampicle$Variant[1:length(ampicle$Variant)-1])
+prim2 <- c(rep(0, 2), ampicle$Variant[1:(length(ampicle$Variant)-2)])
+prim3 <- c(rep(0, 3), ampicle$Variant[1:(length(ampicle$Variant)-3)])
+primtb <- cbind(ampicle$Variant, prim1, prim2, prim3)
+
+ampicle$Priming <- as.vector(unlist(apply(primtb, 1, function(x){
+  x <- ifelse(x[1]== "0" , "noprime",
+              ifelse(x[1] == x[2] | x[1] == x[3] | x[1] == x[4], "prime", "noprime"))
+})))
+# remove items that were not intensified by a minimum of 2 intensifier variants
+nrow(ampicle)
+```
+
+Now, we remove the rows that were identified as problematic.
+
+```{r l2amp_08, echo=T, eval = T, message=FALSE, warning=FALSE}
+# find items to be removed
+supsidx <- unique(grep(paste(sups,collapse="|"), ampicle$PreContextLong, value=F))
+negsidx <- unique(grep(paste(negs,collapse="|"), ampicle$PreContextLong, value=F))
+downtonersidx <- unique(grep(paste(downtoners,collapse="|"), ampicle$PreContextLong, value=F))
+specialformsidx <- unique(grep(paste(specialforms,collapse="|"), ampicle$PreContextLong, value=F))
+PostContextdowntonersidx <- unique(grep(paste(PostContextdowntoners,collapse="|"), ampicle$PostContext, value=F))
+nonpropadjidx <- unique(grep(paste(nonpropadj,collapse="|"), ampicle$Adjective, value=F))
+# combine indices
+idxs <- unique(c(supsidx, negsidx, downtonersidx, specialformsidx, PostContextdowntonersidx, nonpropadjidx))
+# remove forms that require removal
+ampicle <- ampicle[-idxs,]
+# remove empty values
+ampicle <- ampicle[!ampicle$Variant == "", ]
+# remove superfluous columns
+colnames(ampicle)
+ampicle$Content <- NULL
+ampicle$ContentClean <- NULL
+ampicle$PosTaggedContent <- NULL
+ampicle$OriginalString <- NULL
+```
+
+Now, we save the new data set to the disc.
+
+```{r l2amp_09, echo=T, eval = T, message=FALSE, warning=FALSE}
+# save raw data to disc
+write.table(ampicle, "datatables/ampicle_woneg02.txt", sep = "\t", row.names = F)
+```
+
+In a next step, we remove adjectives that were not amplified by at least two different amplifier types.
+ 
+```{r l2amp_10, echo=T, eval = T, message=FALSE, warning=FALSE}
+pintadjtb <- table(ampicle$Adjective, ampicle$Variant)
+#pintadjtb <- pintadjtb[2:nrow(pintadjtb),]
+pintadjtb <- pintadjtb[,2:ncol(pintadjtb)]
+pintadjtb2 <- apply(pintadjtb, 1, function(x){
+  x <- ifelse(x > 1, 1, x)})
+pintadjtb3 <- colSums(pintadjtb2)
+pintadjschildes <- names(pintadjtb3)[which(pintadjtb3 >= 1)]
+ampicle <- ampicle[ampicle$Adjective %in% pintadjschildes, ]
+nrow(ampicle)
+```
+
+Next, we inspect the remaining adjectives.
+
+```{r l2amp_11, echo=T, eval = T, message=FALSE, warning=FALSE}
+# inspect adjectives
+adj <- names(table(ampicle$Adjective))
+# save adjectives to disc
+write.table(adj, "datatables/adj.txt", quote = F, sep = "\t")
+# inspect adjectives
+adj 
+```
+
+Now, we correct spelling mistakes and re-inspect the data.
+
+```{r l2amp_12, echo=T, eval = T, message=FALSE, warning=FALSE}
+# correct misspellings
+ampicle$Adjective <- ifelse(ampicle$Adjective == "chineese", "chinese", ampicle$Adjective)
+# create vector with false adjectives
+rmvadj <- c("uhr", "cheif")
+ampicle$remove <- ifelse(ampicle$Adjective %in% rmvadj, "remove", ampicle$Adjective)
+ampicle <- ampicle[ampicle$remove != "remove",]
+# remove superfluous columns
+ampicle$remove <- NULL
+#colnames(ampicle)
+
+# save raw data to disc
+write.table(ampicle, "datatables/ampicle_semiclean03.txt", sep = "\t", row.names = F)
+# inspect data
+nrow(ampicle); length(table(ampicle$Adjective)); head(ampicle)
+```
+
+We now inspect the amplifiers.
+
+```{r l2amp_13, echo=T, eval = T, message=FALSE, warning=FALSE}
+# tabluate amplifiers
+table(ampicle$Variant)[order(table(ampicle$Variant), decreasing = T)]
+
+# create columns with intensifier freqs
+ampicle$very <- ifelse(ampicle$Variant == "very", 1, 0) 
+ampicle$so <- ifelse(ampicle$Variant == "so", 1, 0) 
+ampicle$really <- ifelse(ampicle$Variant == "really", 1, 0) 
+ampicle$extremely <- ifelse(ampicle$Variant == "extremely", 1, 0)
+ampicle$completely <- ifelse(ampicle$Variant == "completely", 1, 0)
+ampicle$other <- ifelse(ampicle$Variant == "completely" | 
+                          ampicle$Variant == "extremely" |
+                          ampicle$Variant == "really" | 
+                          ampicle$Variant == "so" |
+                          ampicle$Variant == "very", 0, 1)
+# inspect results
+head(ampicle)
+```
+
+In a next step, we code the frequency of adjectives by L1.
+
+```{r l2amp_14, echo=T, eval = T, message=FALSE, warning=FALSE}
+frqadjtb <- table(ampicle$Language, ampicle$Adjective)
+relfreqadjtb <- round(prop.table(frqadjtb, margin = 1)*100, 5)
+relfreqadjdf <- as.data.frame(relfreqadjtb)
+colnames(relfreqadjdf)[1:2] <- c("Language", "Adjective")
+# add freq by date to data
+ampicle <- merge(ampicle, relfreqadjdf, by=c("Language", "Adjective"))
+# reorder data
+ampicle <- ampicle[order(ampicle$ID),]
+# inspect data
+head(ampicle)
+```
+
+In a next step, we code the gradability of adjectives based on the COCA.
+
+```{r l2amp_15, echo=T, eval = T, message=FALSE, warning=FALSE}
+# load Gradability data (derived from COCA)
+gradability <- read.delim("datatables/Gradability.txt", sep = "\t", header = T, quote = "", skipNul = T)
+ampicle$Gradability <- ifelse(ampicle$Adjective %in% gradability$Adjective, gradability$Beta, 1)
+# inspect data
+nrow(ampicle); head(ampicle)
+
+```
+
+Now, we add the semantci classification of adjectives.
+
+```{r l2amp_16, echo=T, eval = T, message=FALSE, warning=FALSE}
+# add semantic types (tagliamonte 2008, based on dixon 1977)
+# dimension = semdim (e.g. big, large, little, small, long, short, wide, narrow, thick)
+# difficulty = semdif (e.g. difficult, simple)
+# physical property = (e.g. hard, soft, heavy, light, rough, smooth, hot, sweet)
+# color = semcol (e.g. black, white, red)
+# human propensity: semhup (e.g. jealous, happy, kind, clever, generous, gay, rude)
+# age = semage (e.g. new, young, old) 
+# value (e.g. good, bad, proper, perfect, excellent, delicious, poor), 
+# speed Speed (fast, quick, slow)
+# position (e.g. right, left, near, far)
+# other
+# load data
+code1 <- read.delim("datatables/semcodecg1.txt", sep = "\t", 
+                    header = T, skipNul = T)
+code2 <- read.delim("datatables/semcodedjm1.txt", sep = "\t", 
+                    header = T, skipNul = T)
+code3 <- read.delim("datatables/semcodedl1.txt", sep = "\t", 
+                    header = T, skipNul = T)
+code4 <- read.delim("datatables/semcodedm1.txt", sep = "\t", 
+                    header = T, skipNul = T)
+code5 <- read.delim("datatables/semcodedma1.txt", sep = "\t", 
+                    header = T, skipNul = T)
+code6 <- read.delim("datatables/semcodedv1.txt", sep = "\t", 
+                    header = T, skipNul = T)
+code7 <- read.delim("datatables/semcodedjw1.txt", sep = "\t", 
+                    header = T, skipNul = T)
+# order data sets
+code1 <- code1[order(code1$Id),]
+code2 <- code2[order(code2$Id),]
+code3 <- code3[order(code3$Id),]
+code4 <- code4[order(code4$Id),]
+code5 <- code5[order(code5$Id),]
+code6 <- code6[order(code6$Id),]
+code7 <- code6[order(code7$Id),]
+# repair adjectives in code1
+code3$Adjective <- code1$Adjective
+# combine tables
+semcode <- rbind(code1, code2, code3, code4, code5, code6, code7)
+# convert coding into numeric values
+semcode[,3:12] <- t(apply(semcode[,3:12], 1, function(x) {
+#  x <- ifelse(x == "" | is.na(x) == T, 0, 1)}))
+  x <- ifelse(x == "" | x == "?"| is.na(x) == T, 0, 1)}))
+# convert into data frame
+semcode <- as.data.frame(semcode)
+# add column names
+colnames(semcode)[3:12] <- c("Dimension", "Difficulty", 
+                             "PhysicalProperty", "Color",
+                             "HumanPropensity", "Age", "Value", 
+                             "Speed", "Position", "Other")
+# load library
+library(dplyr)
+AdjectiveSemantics <- semcode %>%
+  dplyr::group_by(Adjective) %>%
+  na.omit() %>%
+  dplyr::summarize(Dimension = sum(Dimension), Difficulty = sum(Difficulty),
+                PhysicalProperty = sum(PhysicalProperty), Color = sum(Color),
+                HumanPropensity = sum(HumanPropensity), Age = sum(Age),
+                Value = sum(Value), Speed = sum(Speed),
+                Position = sum(Position), Other = sum(Other)) %>%
+  dplyr::mutate(OverallScore = rowSums(.[,2:11])) %>%
+  dplyr::mutate(Maximum = do.call(pmax, (.[,2:11]))) %>%
+  dplyr::mutate(Certainty = Maximum/OverallScore*100)
+AdjectiveSemantics <- AdjectiveSemantics %>%
+  dplyr::mutate(Category = colnames(AdjectiveSemantics[2:11])[apply(AdjectiveSemantics[2:11],1,which.max)])
+# inspect interrater reliability
+summary(AdjectiveSemantics$Certainty)
+
+# create vectors
+Age <- as.vector(unlist(AdjectiveSemantics %>%
+                   dplyr::filter(Category == "Age") %>% select(Adjective)))
+Color <- as.vector(unlist(AdjectiveSemantics %>%
+                          dplyr::filter(Category == "Color") %>% select(Adjective)))
+Difficulty <- as.vector(unlist(AdjectiveSemantics %>%
+                          dplyr::filter(Category == "Difficulty") %>% select(Adjective)))
+Dimension <- as.vector(unlist(AdjectiveSemantics %>%
+                          dplyr::filter(Category == "Dimension") %>% select(Adjective)))
+HumanPropensity <- as.vector(unlist(AdjectiveSemantics %>%
+                          dplyr::filter(Category == "HumanPropensity") %>% select(Adjective)))
+PhysicalProperty <- as.vector(unlist(AdjectiveSemantics %>%
+                          dplyr::filter(Category == "PhysicalProperty") %>% select(Adjective)))
+Position <- as.vector(unlist(AdjectiveSemantics %>%
+                                       dplyr::filter(Category == "Position") %>% select(Adjective)))
+Speed <- as.vector(unlist(AdjectiveSemantics %>%
+                                       dplyr::filter(Category == "Speed") %>% select(Adjective)))
+Value <- as.vector(unlist(AdjectiveSemantics %>%
+                            dplyr::filter(Category == "Value") %>% select(Adjective)))
+# add semantic category to data
+ampicle$SemanticCategory <- ifelse(ampicle$Adjective %in% Age, "Age",
+                                    ifelse(ampicle$Adjective %in% Color, "Color",
+                                    ifelse(ampicle$Adjective %in% Difficulty, "Difficulty",
+                                    ifelse(ampicle$Adjective %in% Dimension, "Dimension",
+                                    ifelse(ampicle$Adjective %in% HumanPropensity, "HumanPropensity",
+                                    ifelse(ampicle$Adjective %in% PhysicalProperty, "PhysicalProperty",
+                                    ifelse(ampicle$Adjective %in% Position, "Position",
+                                    ifelse(ampicle$Adjective %in% Speed, "Speed",
+                                    ifelse(ampicle$Adjective %in% Value, "Value", "Other")))))))))
+# table sem class of tokens
+table(ampicle$SemanticCategory)
+
+# inspect data
+head(ampicle)
+```
+
+Now, we perform a sentiment analysis and annotate the emotionality of adjectives.
+
+```{r l2amp_17, echo=T, eval = T, message=FALSE, warning=FALSE}
+# load library
+library(syuzhet)
+# code emotion
+class_emo <- get_nrc_sentiment(ampicle$Adjective)
+# process sentiment
+ampicle$Emotionality <- as.vector(unlist(apply(class_emo, 1, function(x){
+  x <- ifelse(x[9] == 1, "NegativeEmotional",
+              ifelse(x[10] == 1, "PositiveEmotional", "NonEmotional")) } )))
+# revert order of factor Emotionality
+ampicle$Emotionality <- factor(ampicle$Emotionality, levels = c("NonEmotional", "NegativeEmotional", "PositiveEmotional"))
+# save raw data to disc
+write.table(ampicle, "datatables/ampicle_clean04.txt", sep = "\t", row.names = F)
+# inspect data
+head(ampicle); str(ampicle); nrow(ampicle)
+```
+We have reached the end of the analysis.
